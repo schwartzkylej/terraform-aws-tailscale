@@ -1,0 +1,12 @@
+# terraform files
+**/.terraform/*
+
+*.tfstate
+*.tfstate.*
+
+.terraform
+.terraform.tfstate.lock.*
+
+# crash logs
+crash.log
+test.log

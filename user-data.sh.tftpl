@@ -1,0 +1,50 @@
+#!/usr/bin/env bash
+set -o pipefail
+
+EIP_ID=${eip_id}
+
+if [ -n $${EIP_ID} ]; then
+  TOKEN=`curl -X PUT "http://169.254.169.254/latest/api/token" -H "X-aws-ec2-metadata-token-ttl-seconds: 21600"`
+  INSTANCE_ID=$(curl "http://169.254.169.254/latest/meta-data/instance-id" -H "X-aws-ec2-metadata-token: $TOKEN")
+  aws ec2 associate-address --instance-id $INSTANCE_ID --allocation-id $${EIP_ID} --region us-east-1
+fi
+
+# Install tailscale
+sudo yum install -y yum-utils
+sudo yum-config-manager --add-repo https://pkgs.tailscale.com/stable/amazon-linux/2023/tailscale.repo
+sudo yum install -y tailscale
+
+# Advertise routes
+echo 'net.ipv4.ip_forward = 1' | sudo tee -a /etc/sysctl.d/99-tailscale.conf
+echo 'net.ipv6.conf.all.forwarding = 1' | sudo tee -a /etc/sysctl.d/99-tailscale.conf
+sudo sysctl -p /etc/sysctl.d/99-tailscale.conf
+
+# Fix DNS: https://tailscale.com/kb/1188/linux-dns#common-problems
+sudo ln -sf /run/systemd/resolve/stub-resolv.conf /etc/resolv.conf
+sudo systemctl restart systemd-resolved
+sudo systemctl restart NetworkManager
+
+# Enable tailscale
+sudo systemctl enable --now tailscaled
+sleep 5
+
+# Get oauth secret
+OAUTH_CLIENT_SECRET=$(aws ssm get-parameter \
+  --region ${region} \
+  --name "${parameter_prefix}/oauth_client_secret"  \
+  --with-decryption | jq -r ".Parameter.Value")
+
+# Start tailscale
+sudo tailscale up \
+  --authkey=$${OAUTH_CLIENT_SECRET}?preauthorized=true \
+%{ if enable_subnet_router ~}
+  --advertise-routes=${routes} \
+%{ endif ~}
+%{ if enable_exit_node ~}
+  --advertise-exit-node \
+%{ endif ~}
+%{ if enable_app_connector ~}
+  --advertise-connector \
+%{ endif ~}
+  --advertise-tags=${tags} \
+  --hostname=${hostname}
