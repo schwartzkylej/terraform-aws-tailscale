@@ -24,8 +24,8 @@ jobs:
         with:
           fetch-depth: 0
 
-      - name:
-        id: Scan for secrets
+      - name: Scan for secrets
+        id: trufflehog
         uses: trufflesecurity/trufflehog@v3
         continue-on-error: true
         with:
