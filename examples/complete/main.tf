@@ -127,7 +127,8 @@ module "tailscale_app_connector" {
 ######################################################################
 
 module "vpc" {
-  source = "terraform-aws-modules/vpc/aws"
+  source  = "terraform-aws-modules/vpc/aws"
+  version = "5.9.0"
 
   create_igw                    = true
   manage_default_network_acl    = false
