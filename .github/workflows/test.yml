@@ -26,7 +26,7 @@ jobs:
 
       - name: Scan for secrets
         id: trufflehog
-        uses: trufflesecurity/trufflehog@ed6d045b46642d0d94a60bdf9b1246aefbcf3d35 # v3.90.3
+        uses: trufflesecurity/trufflehog@0f58ae7c5036094a1e3e750d18772af92821b503 # v3.90.5
         continue-on-error: true
         with:
           extra_args: --only-verified
